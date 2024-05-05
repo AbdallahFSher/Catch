@@ -1,46 +1,17 @@
-import { ScrollView, Text, StyleSheet, View } from 'react-native';
-import { Portal, Modal, FAB, Card, Divider, Button, PaperProvider, BottomNavigation, TextInput } from 'react-native-paper';
+import { ImageBackground, ScrollView, Text, StyleSheet, View } from 'react-native';
+import { Icon, Portal, Modal, FAB, Card, Divider, Button, PaperProvider, BottomNavigation, TextInput } from 'react-native-paper';
 import { useFonts } from 'expo-font';
 import * as rssParser from 'react-native-rss-parser';
 import { useState } from 'react';
-
-function parse(url) {
-  fetch(url)
-  .then((response) => response.text())
-  .then((responseData) => rssParser.parse(responseData))
-  .then((rss) => generateCard(rss));
-}
-
-function generateFeed(URLs) {
-  if(URLs.length > 0){
-    for (let i = 0; i < URLs.length; i++) {
-      const URL = URLs[i];
-      parse(URL)
-    }
-  }
-}
-
-function generateCard(rss) {
-  if(rss.title && rss.items){
-    console.log(rss.title);
-    console.log(rss.items.length);
-    return (
-      <Card mode='contained' style={styles.mainContent}>
-      <Card.Title title={rss.title} titleStyle={styles.sourceTitle}/>
-      <Card.Content style={styles.sourceTitle3}>
-        <Text variant="title" style={styles.sourceTitle3}>Items: {rss.items.length}</Text>
-        <Text variant="bodyMedium"></Text>
-      </Card.Content>
-      <Card.Cover source={rss.image} style={styles.sourceImage}/>
-      <Card.Actions>
-        <Button>Delete</Button>
-      </Card.Actions>
-    </Card>
-    );
-  }
-}
+import './RSSEntry'
+import RSSEntry from "./RSSEntry";
+import { NavigationContainer } from '@react-navigation/native'
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createMaterialBottomTabNavigator,  } from "react-native-paper/react-navigation";
 
 export default function App() {
+  const Tab = createMaterialBottomTabNavigator();
+  const Stack = createNativeStackNavigator();
   const [fontsLoaded] = useFonts({'Beth Ellen' : require('./assets/fonts/BethEllen-Regular.ttf'),});
   const [idCounter, setidCounter] = useState(0);
   const feedURL = 'https://www.patreon.com/rss/theofficialpodcast?auth=x7Nf0Tjv_e2cTYJkH-tAPi55FQe8EHMV'
@@ -68,7 +39,26 @@ export default function App() {
       {key: idCounter, title: rss.title, items: rss.items, image: rss.image}]));
     setidCounter(idCounter + 1);
   };
+  const handleItemPress = key => {
+    setRSSImage(RSSs.find(obj => obj.key == key));
 
+  }
+
+  const MainRoute = () => {
+      return(
+        <View>
+
+          <FeedRoute/>
+        </View>
+      )
+    }
+    ;
+
+  const ItemRoute = () =>
+    <View>
+      <ImageBackground source={rssImage}>
+      </ImageBackground>
+    </View>;
 
   const FeedRoute = () =>
     <View style={styles.mainContainer} id='deck'>
@@ -76,14 +66,7 @@ export default function App() {
       {
         RSSs.map(function(rss){
           return(
-            <Card mode='contained' style={styles.mainContent}>
-              <Card.Title title={rss.title} titleStyle={styles.sourceTitle}/>
-              <Card.Content style={styles.sourceTitle3}>
-                <Text variant="title" style={styles.sourceTitle3}>Items: {rss.items.length}</Text>
-                <Text variant="bodyMedium"></Text>
-              </Card.Content>
-              <Card.Cover source={rss.image} style={styles.sourceImage}/>
-            </Card>
+            <RSSEntry title={rss.title} items={rss.items} image={rss.image}/>
           )
         })
       }
@@ -93,6 +76,17 @@ export default function App() {
         style={styles.fab}
         onPress={() => modalShow()}
       />
+      <Portal>
+        <Modal visible={modalVisible} onDismiss={() => modalHide()} contentContainerStyle={styles.modal}>
+          <Text>Input your rss feed link, yo</Text>
+          <TextInput
+            label='URL'
+            value={inputURL}
+            onChangeText={inputURL => setInputURL(inputURL)}
+          />
+          <Button onPress={() =>handleURL(inputURL)}>Add Feed</Button>
+        </Modal>
+      </Portal>
     </View>;
 
   const LibraryRoute = () => <Text>Library</Text>;
@@ -113,29 +107,12 @@ export default function App() {
   
   return (
     <PaperProvider>
-      <View style={styles.persTitle}>
-        <Text style={{fontFamily: 'Beth Ellen', fontSize:25}}>Catch</Text>
-        <Divider/>
-      </View>
-      <Portal>
-        <Modal visible={modalVisible} onDismiss={() => modalHide()} contentContainerStyle={styles.modal}>
-          <Text>Input your rss feed link, yo</Text>
-          <TextInput
-            label='URL'
-            value={inputURL}
-            onChangeText={inputURL => setInputURL(inputURL)}
-          />
-          <Button onPress={() => 
-            handleURL(inputURL)
-          }>Add Feed</Button>
-        </Modal>
-      </Portal>
-
-      <BottomNavigation
-        navigationState={{index, routes}}
-        onIndexChange={setIndex}
-        renderScene={renderScene}
-      />
+      <NavigationContainer>
+        <Tab.Navigator>
+          <Stack.Screen name='Main' component={FeedRoute} options={{title: 'Feed'}}/>
+          <Stack.Screen name='ItemPage' component={ItemRoute}/>
+        </Tab.Navigator>
+      </NavigationContainer>
 
     </PaperProvider>
   );
@@ -163,39 +140,10 @@ const styles = StyleSheet.create({
     flex: 1,
     height: "100%",
     width: "100%",
-  },
-  mainContent: {
-    padding:0,
-    marginVertical: 10,
-    marginHorizontal: 20,
-    height: 150
+    alignItems: 'center'
   },
   menuContainer: {
     height: "10%",
-  },
-  sourceTitle: {
-    fontWeight: 'bold',
-    fontSize: 20,
-    width: '100%',
-  },
-  sourceTitle2: {
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  sourceTitle3: {
-    fontWeight: 'bold',
-    fontSize: 15,
-    width: '50%',
-    paddingRight: 0,
-  },
-  sourceImage: {
-    position: 'relative',
-    height: '70%',
-    aspectRatio: 1,
-    padding: 0,
-    marginRight: 10,
-    marginTop: 0,
-    alignSelf: 'flex-end'
   },
   buttonStyle: {
     alignContent: 'center',
