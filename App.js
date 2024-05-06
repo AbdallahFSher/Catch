@@ -5,7 +5,7 @@ import { useFonts } from 'expo-font';
 import * as rssParser from 'react-native-rss-parser';
 import { useEffect, useState } from 'react';
 import './RSSEntry'
-import RSSEntry from "./RSSEntry";
+import RSSEntry from "./Components/RSSEntry";
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createMaterialBottomTabNavigator,  } from "react-native-paper/react-navigation";
