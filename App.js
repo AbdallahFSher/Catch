@@ -4,7 +4,8 @@ import { Icon, Portal, Modal, FAB, Card, Divider, Button, PaperProvider, BottomN
 import { useFonts } from 'expo-font';
 import * as rssParser from 'react-native-rss-parser';
 import { useEffect, useState } from 'react';
-import './RSSEntry'
+import './Components/RSSEntry'
+import './Components/MusicPlayer'
 import RSSEntry from "./Components/RSSEntry";
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -12,6 +13,7 @@ import { createMaterialBottomTabNavigator,  } from "react-native-paper/react-nav
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import Markdown from 'react-native-markdown-display';
 import { Audio } from 'expo-av'
+import MusicPlayer from "./Components/MusicPlayer";
 
 export default function App() {
   const Tab = createMaterialBottomTabNavigator();
@@ -31,6 +33,9 @@ export default function App() {
   const modalHide = () => setModalVisible(false);
   const [URLs, setURLs] = useState([]);
   const [RSSs, setRSSs] = useState([]);
+  const [nowPlaying, setNowPlaying] = useState('');
+  const [NPImage, setNPImage] = useState();
+
   const handleButton = () => {
     modalHide();
     setURLs([...URLs, inputURL])
@@ -45,13 +50,6 @@ export default function App() {
           {key: idCounter, title: rss.title, items: rss.items, image: rss.image}]));
           setidCounter(idCounter + 1);
   };
-
-  const itemCard = (title, description) => {
-    <View>
-      <Text>{title}</Text>
-      <Text>{description}</Text>
-    </View>
-  }
 
   async function playSound(url) {
     console.log('Loading Sound');
@@ -74,6 +72,11 @@ export default function App() {
 
   function ItemRoute({route, navigation}){
     const {title, items, image} = route.params;
+    function handleItemPress(item){
+      setNowPlaying(item.title)
+      setNPImage(item["itunes"].image)
+      playSound(item["enclosures"][0].url)
+    }
     return(
         <View>
           <ImageBackground source={image} blurRadius={10}>
@@ -90,7 +93,7 @@ export default function App() {
                         </Text>
                       </Card.Content>
                       <Card.Actions>
-                        <Button onPress={() => playSound(item["enclosures"][0].url)}>Play</Button>
+                        <Button onPress={() => handleItemPress(item)}>Play</Button>
                       </Card.Actions>
                     </Card>
                   )
@@ -139,14 +142,10 @@ export default function App() {
     )
   }
   function FeedRoute({navigation}) {
-    const handleItemPress = key => {
-      setRSSImage(RSSs.find(obj => obj.key == key));
-      navigation.navigate('ItemPage', {title: key.title, items: key.items, image: key.image})
-    }
     return(
         <Stack.Navigator
           screenOptions={{headerShown: false}}>
-          <Stack.Screen name='FeedPage' component={Feed}/>
+          <Stack.Screen name='FeedPage' component={Feed} />
           <Stack.Screen name='ItemPage' component={ItemRoute}/>
         </Stack.Navigator>
     )
@@ -163,6 +162,7 @@ export default function App() {
           <Drawer.Screen name='Main' component={FeedRoute} options={{title:'Feed'}}/>
         </Drawer.Navigator>
       </NavigationContainer>
+      <MusicPlayer title={nowPlaying} image={NPImage ? NPImage : './dog.jpg'} sound={sound}/>
 
     </PaperProvider>
   );
